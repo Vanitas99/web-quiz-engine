@@ -1,0 +1,3 @@
+[submodule "goemaxima/goemaxima"]
+	path = goemaxima/goemaxima
+	url = https://github.com/mathinstitut/goemaxima
