@@ -1,6 +1,6 @@
 package org.hyperskill.webquizengine.dto;
 
-import org.hyperskill.webquizengine.util.MaximaTuple;
+import org.hyperskill.webquizengine.util.AnswersDto;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
@@ -11,7 +11,7 @@ public class CalculationRequest {
 
     @NotEmpty
     @Valid
-    private List<MaximaTuple> inputs = new ArrayList<>();
+    private List<AnswersDto> inputs = new ArrayList<>();
     @NotEmpty
     private List<String> outputVariableNames = new ArrayList<>();
 
@@ -23,11 +23,11 @@ public class CalculationRequest {
         this.outputVariableNames = outputVariableNames;
     }
 
-    public List<MaximaTuple> getInputs() {
+    public List<AnswersDto> getInputs() {
         return inputs;
     }
 
-    public void setInputs(List<MaximaTuple> inputs) {
+    public void setInputs(List<AnswersDto> inputs) {
         this.inputs = inputs;
     }
 }

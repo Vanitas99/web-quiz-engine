@@ -2,7 +2,7 @@ package org.hyperskill.webquizengine.controller;
 
 import org.hyperskill.webquizengine.dto.CalculationRequest;
 import org.hyperskill.webquizengine.dto.CalculationResponse;
-import org.hyperskill.webquizengine.dto.MaximaQuestionDto;
+import org.hyperskill.webquizengine.dto.MaximaQuestionCreationDto;
 import org.hyperskill.webquizengine.dto.ResultDto;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -19,13 +19,11 @@ import org.hyperskill.webquizengine.service.MaximaQuestionService;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.validation.Valid;
-import javax.validation.constraints.AssertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
-import java.util.List;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -42,18 +40,10 @@ public class MaximaQuestionController {
     }
 
     @PostMapping(path = "/question" ,produces = APPLICATION_JSON_VALUE)
-    public Long create(@RequestBody @Valid MaximaQuestionDto question,
+    public Long create(@RequestBody @Valid MaximaQuestionCreationDto question,
                        @Autowired Principal principal) {
         logger.info("User {} wants to create a quiz", principal.getName());
         return service.createQuestion(question, principal.getName());
-    }
-
-    @PostMapping(path = "/assess", produces = APPLICATION_JSON_VALUE)
-    public ResultDto assessAnswer(@RequestParam String correctAnswer,
-                                  @RequestParam String userAnswer,
-                                  @Autowired Principal principal,
-                                  UriComponentsBuilder builder) {
-        return service.assessUserAnswer(userAnswer, correctAnswer, principal.getName());
     }
 
     @DeleteMapping(path = "/question/{id}", produces = APPLICATION_JSON_VALUE)
@@ -65,18 +55,18 @@ public class MaximaQuestionController {
     }
 
     @GetMapping(path = "/question/{id}", produces = APPLICATION_JSON_VALUE)
-    public MaximaQuestionDto getQuestionById(@PathVariable long id,
-                                             @Autowired Principal principal) {
-        return new ModelMapper().map(service.getQuestionById(id), MaximaQuestionDto.class);
+    public MaximaQuestionCreationDto getQuestionById(@PathVariable long id,
+                                                     @Autowired Principal principal) {
+        return new ModelMapper().map(service.getQuestionById(id), MaximaQuestionCreationDto.class);
     }
 
     @GetMapping(path = "/questions/{category}", produces = APPLICATION_JSON_VALUE)
-    public Slice<MaximaQuestionDto> getQuestionsByCategory(@PathVariable String category,
-                                                           @RequestParam int page,
-                                                           @RequestParam int size,
-                                                           @Autowired Principal principal) {
+    public Slice<MaximaQuestionCreationDto> getQuestionsByCategory(@PathVariable String category,
+                                                                   @RequestParam int page,
+                                                                   @RequestParam int size,
+                                                                   @Autowired Principal principal) {
        return service.findQuestionsByCategory(category, page, size).map(question ->
-                new ModelMapper().map(question, MaximaQuestionDto.class)
+                new ModelMapper().map(question, MaximaQuestionCreationDto.class)
         );
     }
 

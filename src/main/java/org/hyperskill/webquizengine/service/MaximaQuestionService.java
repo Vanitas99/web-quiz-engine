@@ -1,17 +1,16 @@
 package org.hyperskill.webquizengine.service;
 
-import org.hyperskill.webquizengine.dto.CalculationRequest;
-import org.hyperskill.webquizengine.dto.CalculationResponse;
-import org.hyperskill.webquizengine.dto.MaximaQuestionDto;
-import org.hyperskill.webquizengine.dto.ResultDto;
-import org.hyperskill.webquizengine.exception.QuizNotFoundException;
-import org.hyperskill.webquizengine.exception.UserNotFoundException;
+import org.hyperskill.webquizengine.dto.*;
+import org.hyperskill.webquizengine.exception.*;
+import org.hyperskill.webquizengine.model.Answer;
+import org.hyperskill.webquizengine.model.AnswerTestType;
 import org.hyperskill.webquizengine.model.MaximaQuestion;
+import org.hyperskill.webquizengine.repository.AnswerTypeRepository;
 import org.hyperskill.webquizengine.repository.MaximaQuestionRepository;
 import org.hyperskill.webquizengine.repository.RandomVariableRepository;
 import org.hyperskill.webquizengine.repository.UserRepository;
 import org.hyperskill.webquizengine.util.BackendProperties;
-import org.hyperskill.webquizengine.util.MaximaTuple;
+import org.hyperskill.webquizengine.util.AnswersDto;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +35,7 @@ import java.util.regex.Pattern;
 @Service
 public class MaximaQuestionService {
 
+    public static List<String> allowedUserFunctions = List.of("sin", "cos");
 
     public static class MaximaQueryParams {
         @NotBlank
@@ -96,13 +96,14 @@ public class MaximaQuestionService {
     private final OkHttp3ClientHttpRequestFactory http = new OkHttp3ClientHttpRequestFactory();
     private final Logger logger = LoggerFactory.getLogger(MaximaQuestionService.class);
     private final URI maximaUri;
+    private final AnswerTypeRepository answerTypeRepository;
 
 
     @Autowired
     public MaximaQuestionService(MaximaQuestionRepository repository,
                                  RandomVariableRepository variableRepository,
                                  UserRepository userRepository,
-                                 BackendProperties maximaProps) {
+                                 BackendProperties maximaProps, AnswerTypeRepository answerTypeRepository) {
         this.questionRepository = repository;
         this.variableRepository = variableRepository;
         this.userRepository = userRepository;
@@ -113,15 +114,24 @@ public class MaximaQuestionService {
                 .host(maximaProps.getIp())
                 .port(maximaProps.getPort())
                 .replacePath("/maxima").build().toUri();
+        this.answerTypeRepository = answerTypeRepository;
     }
 
-    public long createQuestion(final MaximaQuestionDto dto, final String username) {
+    public long createQuestion(final MaximaQuestionCreationDto dto, final String username) {
         var user = userRepository.findByUsername(username).orElseThrow(UserNotFoundException::new);
-        var question = new ModelMapper().map(dto, MaximaQuestion.class);
-        logger.info(question.toString());
-        var r = new Random();
-        float b =  (long) (r.nextFloat()*10.0) / 10.0f;
-        logger.info("Random Variable {}", b);
+        //var question = new ModelMapper().map(dto, MaximaQuestion.class);
+        var question = new MaximaQuestion();
+        StringBuilder storeEquations = new StringBuilder();
+        dto.getCalculations().getInputs().forEach(maximaTuple -> {
+            storeEquations.append(maximaTuple.getVariableName()).append(":").append(maximaTuple.getMaximaExpression()).append(";");
+        });
+        logger.info(storeEquations.toString());
+        question.setExpressions(storeEquations.toString());
+        question.setDescription(dto.getDescription());
+        question.setNumberOfExpressions((long) dto.getCalculations().getInputs().size());
+        dto.getAnswers().forEach(answerTestDto -> {
+            question.addAnswer(new ModelMapper().map(answerTestDto, Answer.class));
+        });
         return questionRepository.save(question).getId();
     }
 
@@ -139,30 +149,60 @@ public class MaximaQuestionService {
         return questionRepository.findById(id).orElseThrow(QuizNotFoundException::new);
     }
 
+    public MaximaQuestionReturnDto getRandomizedQuestionById(final long id) {
+        var randomSeed = System.currentTimeMillis() & 0xffff;
+        var question = questionRepository.findById(id).orElseThrow(QuizNotFoundException::new);
+        var calculations = question.getExpressions();
+
+        MaximaQuestionReturnDto dto = new MaximaQuestionReturnDto();
+        dto.setId(id);
+        dto.setSeed(randomSeed);
+        var answers = new ArrayList<AnswerTestDto>();
+        question.getAnswers().forEach(answer -> {
+            var answerTestDto = new AnswerTestDto();
+            answerTestDto.setName(answer.getName());
+            answerTestDto.setType(answer.getType());
+            answers.add(answerTestDto);
+        });
+        dto.setAnswerVariables(question.getAnswers());
+    }
+
     public Slice<MaximaQuestion> findQuestionsByCategory(final String category, final int page,  final int size) {
         var pageable = PageRequest.of(page, size, Sort.by("id"));
         return questionRepository.findQuestionsByCategory(category, pageable);
     }
+    public ResultDto assessAnswer(final String userAnswer, final Long questionId, final Long seed, final String username, final String answerName) {
 
-    public ResultDto assessUserAnswer(final String userAnswer, final String maximaCalculation, final String username) {
         var clearedUserAnswer = userAnswer.replace(";", "").replace(" ", "");
+        isInputIllegal(clearedUserAnswer, true, false, allowedUserFunctions);
+        var question = questionRepository.findById(questionId).orElseThrow(QuizNotFoundException::new);
+        var solveEquation = question.getAnswerByName(answerName).getType().getSolveEquation();
 
-        boolean userInputIllegal = false;
-        boolean maximaCalculationIllegal = false;
-        if ((userInputIllegal = isInputIllegal(userAnswer, true, false))
-                || (maximaCalculationIllegal = isInputIllegal(maximaCalculation, true, false))) {
+        var prefix = new ArrayList<String>();
+        prefix.add(String.format("stack_randseed(%d);", seed));
 
-        }
+        var amountOfCalculations = question.getNumberOfExpressions();
 
-        var input = String.format("is(equal(%s,%s));", clearedUserAnswer, maximaCalculation);
-        logger.info("User wants to validate his answer: {} to calculation: {}", clearedUserAnswer, maximaCalculation);
+        var postfix = new ArrayList<String>();
+        postfix.add(String.format(solveEquation, userAnswer, answerName));
+
+        var inputString = new StringBuilder()
+                .append(prefix)
+                .append(question.getExpressions())
+                .append(postfix)
+                .toString();
+        var output = sendToMaximaBackend(new MaximaQueryParams(inputString));
 
         String result;
-        if ((result = sendToMaximaBackend(new MaximaQueryParams(input))) == null) {
+        if ((result = sendToMaximaBackend(new MaximaQueryParams(inputString))) == null) {
             var ret = ResultDto.failure();
             ret.setFeedback("Maxima was not able to assess your answer");
             return ret;
         }
+
+        var t = parseMaximaOutput(result, );
+
+
         return result.contains("true") ? ResultDto.success() : ResultDto.failure();
     }
 
@@ -180,30 +220,44 @@ public class MaximaQuestionService {
         if ((output = sendToMaximaBackend(new MaximaQueryParams(inputBuilder.toString()))) == null) {
             logger.info("Could not calculate");
         }
-        return parseMaximaOutput(output,calculationRequest);
+        return parseMaximaOutput(output, calculationRequest, 9);
     }
 
-    private boolean isInputIllegal(final String input, boolean extremlyStrict, boolean allowMultiCharacterVariables) {
+    private void isInputIllegal(final String input, boolean noFunctionCalls, boolean allowMultiCharacterVariables, final List<String> allowedFunctions) throws IllegalColonException, IllegalFunctionException, IllegalMultiCharException{
+
+        var noColonMatcher = Pattern.compile(":").matcher(input);
+        if (noColonMatcher.find()) {
+            logger.info("User entered a :! Bad!");
+            throw new IllegalColonException();
+        }
 
         var noLispMatcher = Pattern.compile(":?lisp").matcher(input);
-        var forbiddenInputMatcher = Pattern.compile("(.{2,})").matcher(input);
-        var functionCallMatcher = Pattern.compile("(.)").matcher(input);
-
         if (noLispMatcher.find()) {
             logger.info("User entered a lisp command! Bad!");
-            return true;
+            throw new IllegalFunctionException();
         }
 
-        if (forbiddenInputMatcher.find()) {
-            logger.info("User tried to either enter a forbidden maxima function or entered multi character variable! Bad!");
-            return true;
+        if (noFunctionCalls) {
+            var functionCallMatcher = Pattern.compile("(.+)\\(").matcher(input);
+            if (functionCallMatcher.find()) {
+                var functionName = functionCallMatcher.group(1);
+                if (!allowedFunctions.contains(functionName)) {
+                    logger.info("User tried to enter function {} or forgot to enter multiplication sign! Bad!", functionName);
+                    throw new IllegalFunctionException();
+                }
+            }
         }
-
-        return false;
-
+        var forbiddenMutliCharMatcher = Pattern.compile("(.{2,})").matcher(input);
+        if (!allowMultiCharacterVariables) {
+            if (forbiddenMutliCharMatcher.find()) {
+                var multiChar = forbiddenMutliCharMatcher.group(1);
+                logger.info("User entered multichar variable {} ", multiChar);
+                throw new IllegalMultiCharException();
+            }
+        }
     }
 
-    private CalculationResponse parseMaximaOutput(final String output, final CalculationRequest req) {
+    private CalculationResponse parseMaximaOutput(final String output, final CalculationRequest req, int startIdx) {
 
         var outputLines = new HashMap<String, String>();
         var scanner = new Scanner(output);
@@ -230,9 +284,9 @@ public class MaximaQuestionService {
             int inputSize = req.getInputs().size();
             var inputObj = req.getInputs().stream().filter(input -> input.getVariableName().equals(variableName)).findFirst().orElseThrow();
             int idx = req.getInputs().indexOf(inputObj);
-            var outputId = String.valueOf(idx + 9);
+            var outputId = String.valueOf(idx + startIdx);
 
-            var tuple = new MaximaTuple();
+            var tuple = new AnswersDto();
             tuple.setVariableName(variableName);
             tuple.setMaximaExpression(outputLines.get(outputId));
             response.addOutputTuple(tuple);
@@ -241,6 +295,8 @@ public class MaximaQuestionService {
     }
 
     private String sendToMaximaBackend(@Valid final MaximaQueryParams params) {
+        logger.info("Sending {} to maxima", params.input);
+
         try {
             var builder = UriComponentsBuilder.fromUri(maximaUri)
                     .queryParam("input", UriUtils.encode(params.input, StandardCharsets.UTF_8))

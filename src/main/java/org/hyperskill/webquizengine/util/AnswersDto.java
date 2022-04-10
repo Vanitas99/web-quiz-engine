@@ -2,7 +2,7 @@ package org.hyperskill.webquizengine.util;
 
 import javax.validation.constraints.NotEmpty;
 
-public class MaximaTuple {
+public class AnswersDto {
     public String getVariableName() {
         return variableName;
     }

@@ -38,4 +38,7 @@ public class RandomVariable {
     @Column(nullable = false)
     private Type type;
 
+    @Column()
+    private String maximaExpression;
+
 }

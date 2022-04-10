@@ -3,10 +3,10 @@ package org.hyperskill.webquizengine.model;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+import java.util.Objects;
 
 @Entity
-@Table(name = "maxima")
+@Table(name = "maxima_question")
 public class MaximaQuestion {
 
     @Id
@@ -17,10 +17,57 @@ public class MaximaQuestion {
     private String description;
 
     @Column(nullable = false)
-    private String equation;
+    private String expressions;
+
+
+    @Column(nullable = false)
+    private Long numberOfExpressions;
 
     @Column()
     private String category;
+
+    public Long getNumberOfExpressions() {
+        return numberOfExpressions;
+    }
+
+    public void setNumberOfExpressions(Long numberOfExpressions) {
+        this.numberOfExpressions = numberOfExpressions;
+    }
+
+
+    public User getUserId() {
+        return userId;
+    }
+
+    public void setUserId(User userId) {
+        this.userId = userId;
+    }
+
+    public List<Answer> getAnswers() {
+        return answers;
+    }
+
+    public Answer getAnswerByName(final String name) {
+        return answers.stream().filter(answer -> {
+            return Objects.equals(answer.getName(), name);
+        }).findAny().orElseThrow(IllegalArgumentException::new);
+    }
+
+    public void setAnswers(List<Answer> answers) {
+        this.answers = answers;
+    }
+
+    public void addAnswer(Answer answer) {
+        this.answers.add(answer);
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable=false)
+    private User userId;
+
+    @OneToMany
+    @JoinColumn(name = "answer_id", nullable = false)
+    private List<Answer> answers;
 
     public String getCategory() {
         return category;
@@ -32,12 +79,12 @@ public class MaximaQuestion {
 
 
 
-    public String getEquation() {
-        return equation;
+    public String getExpressions() {
+        return expressions;
     }
 
-    public void setEquation(String equation) {
-        this.equation = equation;
+    public void setExpressions(String expressions) {
+        this.expressions = expressions;
     }
 
     public Long getId() {
@@ -55,17 +102,4 @@ public class MaximaQuestion {
     public void setDescription(String description) {
         this.description = description;
     }
-
-    public List<RandomVariable> getRandomizableVars() {
-        return randomizableVars;
-    }
-
-    public void setRandomizableVars(List<RandomVariable> randomizableVars) {
-        this.randomizableVars = randomizableVars;
-    }
-
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "var_id")
-    private List<RandomVariable> randomizableVars = new ArrayList<>();
-
 }
