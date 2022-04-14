@@ -1,8 +1,8 @@
-package org.hyperskill.webquizengine.util;
+package org.hyperskill.webquizengine.dto;
 
 import javax.validation.constraints.NotEmpty;
 
-public class AnswersDto {
+public class MaximaExpressionTuple {
     public String getVariableName() {
         return variableName;
     }

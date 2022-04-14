@@ -1,24 +1,22 @@
 package org.hyperskill.webquizengine.dto;
 
-import org.hyperskill.webquizengine.util.AnswersDto;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class CalculationResponse {
 
-    public List<AnswersDto> getVariables() {
+    public List<MaximaExpressionTuple> getVariables() {
         return variables;
     }
 
-    public void setVariables(List<AnswersDto> variables) {
+    public void setVariables(List<MaximaExpressionTuple> variables) {
         this.variables = variables;
     }
 
-    public void addOutputTuple(final AnswersDto tuple) {
+    public void addOutputTuple(final MaximaExpressionTuple tuple) {
         this.variables.add(tuple);
     }
 
-    private List<AnswersDto> variables = new ArrayList<>();
+    private List<MaximaExpressionTuple> variables = new ArrayList<>();
 
 }

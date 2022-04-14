@@ -1,9 +1,8 @@
 package org.hyperskill.webquizengine.controller;
 
-import org.hyperskill.webquizengine.dto.CalculationRequest;
+import org.hyperskill.webquizengine.dto.Calculations;
 import org.hyperskill.webquizengine.dto.CalculationResponse;
 import org.hyperskill.webquizengine.dto.MaximaQuestionCreationDto;
-import org.hyperskill.webquizengine.dto.ResultDto;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.hyperskill.webquizengine.service.MaximaQuestionService;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.io.File;
@@ -57,7 +55,7 @@ public class MaximaQuestionController {
     @GetMapping(path = "/question/{id}", produces = APPLICATION_JSON_VALUE)
     public MaximaQuestionCreationDto getQuestionById(@PathVariable long id,
                                                      @Autowired Principal principal) {
-        return new ModelMapper().map(service.getQuestionById(id), MaximaQuestionCreationDto.class);
+        return new ModelMapper().map(service.getRawQuestionById(id), MaximaQuestionCreationDto.class);
     }
 
     @GetMapping(path = "/questions/{category}", produces = APPLICATION_JSON_VALUE)
@@ -81,7 +79,7 @@ public class MaximaQuestionController {
     }
 
     @PostMapping(path = "/calculate", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
-    public CalculationResponse calculate(@Valid @RequestBody CalculationRequest calc) {
+    public CalculationResponse calculate(@Valid @RequestBody Calculations calc) {
         return service.calculate(calc);
     }
 

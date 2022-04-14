@@ -1,12 +1,9 @@
 package org.hyperskill.webquizengine.dto;
 
-import org.hyperskill.webquizengine.util.AnswersDto;
-
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 public class MaximaQuestionCreationDto implements Serializable {
 
@@ -14,23 +11,23 @@ public class MaximaQuestionCreationDto implements Serializable {
     @NotBlank(message = "Description must be set for a question")
     private String description;
     @Valid
-    private CalculationRequest calculations;
+    private Calculations calculations;
 
-    public List<AnswersDto> getAnswers() {
+    public List<MaximaExpressionTuple> getAnswers() {
         return answers;
     }
 
-    public void setAnswers(List<AnswersDto> answers) {
+    public void setAnswers(List<MaximaExpressionTuple> answers) {
         this.answers = answers;
     }
 
-    private List<AnswersDto> answers;
+    private List<MaximaExpressionTuple> answers;
 
-    public CalculationRequest getCalculations() {
+    public Calculations getCalculations() {
         return calculations;
     }
 
-    public void setCalculations(CalculationRequest calculations) {
+    public void setCalculations(Calculations calculations) {
         this.calculations = calculations;
     }
 

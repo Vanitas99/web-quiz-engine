@@ -1,7 +1,5 @@
 package org.hyperskill.webquizengine.dto;
 
-import org.hyperskill.webquizengine.util.AnswersDto;
-
 import java.util.List;
 
 public class MaximaQuestionReturnDto {
@@ -21,11 +19,11 @@ public class MaximaQuestionReturnDto {
         this.description = description;
     }
 
-    public List<AnswersDto> getAnswerVariables() {
+    public List<AnswerTestDto> getAnswerVariables() {
         return answerVariables;
     }
 
-    public void setAnswerVariables(List<AnswersDto> answerVariables) {
+    public void setAnswerVariables(List<AnswerTestDto> answerVariables) {
         this.answerVariables = answerVariables;
     }
 
@@ -40,5 +38,5 @@ public class MaximaQuestionReturnDto {
     private Long id;
     private Long seed;
     private String description;
-    private List<AnswersDto> answerVariables;
+    private List<AnswerTestDto> answerVariables;
 }
