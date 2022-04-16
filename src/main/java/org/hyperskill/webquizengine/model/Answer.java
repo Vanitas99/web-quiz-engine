@@ -7,6 +7,28 @@ import javax.persistence.*;
 @Table(name = "answer")
 public class Answer {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column()
+    private String prompt;
+
+
+    /*
+        A question-creator defined Maxima function, that returns [validity,correctness,feedback,""] or true/false
+        indicating whether the user input answer is correct. This function is sequential, meaning that for the correctness of
+        the answer needed property check should be ordered by their significance to the answer validation.
+        E.g checkAnswerA(USER_ANSWER,CORRECT_ANSWER) := block(
+            if (not matrixp(USER_ANSWER)) return false[]
+           )
+    */
+    @Column(nullable = true)
+    private String assessmentFunction;
+
     public Long getId() {
         return id;
     }
@@ -23,22 +45,20 @@ public class Answer {
         this.name = name;
     }
 
-    public AnswerTestType getType() {
-        return type;
+    public String getPrompt() {
+        return prompt;
     }
 
-    public void setType(AnswerTestType type) {
-        this.type = type;
+    public void setPrompt(String prompt) {
+        this.prompt = prompt;
     }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public String getAssessmentFunction() {
+        return assessmentFunction;
+    }
 
-    @Column(nullable = false)
-    private String name;
+    public void setAssessmentFunction(String assessmentFunction) {
+        this.assessmentFunction = assessmentFunction;
+    }
 
-    @ManyToOne
-    @JoinColumn(name = "answer_type_id")
-    private AnswerTestType type;
 }

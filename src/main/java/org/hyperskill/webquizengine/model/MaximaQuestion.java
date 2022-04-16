@@ -19,12 +19,30 @@ public class MaximaQuestion {
     @Column(nullable = false)
     private String expressions;
 
-
     @Column(nullable = false)
     private Long numberOfExpressions;
 
     @Column()
     private String category;
+
+    @Column
+    private boolean globalSimplification;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable=false)
+    private User createdBy;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "answer_id", nullable = false)
+    private List<Answer> answers = new ArrayList<Answer>();
+
+    public boolean isGlobalSimplification() {
+        return globalSimplification;
+    }
+
+    public void setGlobalSimplification(boolean globalSimplification) {
+        this.globalSimplification = globalSimplification;
+    }
 
     public Long getNumberOfExpressions() {
         return numberOfExpressions;
@@ -34,13 +52,12 @@ public class MaximaQuestion {
         this.numberOfExpressions = numberOfExpressions;
     }
 
-
-    public User getUserId() {
-        return userId;
+    public User getCreatedBy() {
+        return createdBy;
     }
 
-    public void setUserId(User userId) {
-        this.userId = userId;
+    public void setCreatedBy(User createdBy) {
+        this.createdBy = createdBy;
     }
 
     public List<Answer> getAnswers() {
@@ -61,14 +78,6 @@ public class MaximaQuestion {
         this.answers.add(answer);
     }
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable=false)
-    private User userId;
-
-    @OneToMany
-    @JoinColumn(name = "answer_id", nullable = false)
-    private List<Answer> answers;
-
     public String getCategory() {
         return category;
     }
@@ -76,8 +85,6 @@ public class MaximaQuestion {
     public void setCategory(String category) {
         this.category = category;
     }
-
-
 
     public String getExpressions() {
         return expressions;
